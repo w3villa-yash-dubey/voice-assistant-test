@@ -1,0 +1,19 @@
+aiohttp>=3.9.0
+aiortc>=1.9.0
+av>=12.0.0
+numpy>=1.26.0
+openai>=1.40.0
+python-dotenv>=1.0.0
+
+# Goonj TTS (Kokoro-82M finetune)
+torch>=2.1.0
+huggingface_hub>=0.23.0
+soundfile>=0.12.0
+phonemizer>=3.2.0
+loguru>=0.7.0
+transformers>=4.40.0
+scipy>=1.11.0
+num2words>=0.5.13
+
+# Install these WITHOUT deps (avoids pulling spacy which breaks on some Pythons):
+#   pip install kokoro misaki --no-deps

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voice Assistant</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">WebRTC · Jetson test</p>
+        <h1>Voice Assistant</h1>
+        <p class="sub">
+          Talk naturally. Interrupt anytime — barge-in stops the reply.
+        </p>
+      </header>
+
+      <section class="stage">
+        <div id="orb" class="orb idle" aria-hidden="true"></div>
+        <p id="stateLabel" class="state">idle</p>
+        <p id="status" class="status">Press start and allow microphone access.</p>
+      </section>
+
+      <section class="controls">
+        <button id="startBtn" type="button">Start</button>
+        <button id="stopBtn" type="button" disabled>Stop</button>
+        <button id="resetBtn" type="button" disabled>Clear chat</button>
+      </section>
+
+      <section class="log" aria-live="polite">
+        <h2>Transcript</h2>
+        <ul id="transcript"></ul>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

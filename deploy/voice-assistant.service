@@ -1,0 +1,25 @@
+[Unit]
+Description=WebRTC Voice Assistant (isolated venv)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nvidia
+Group=nvidia
+WorkingDirectory=/opt/voice-assistant
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/opt/voice-assistant/.env
+ExecStart=/opt/voice-assistant/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=3
+
+# Keep the process somewhat isolated from the rest of the system
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/voice-assistant
+
+[Install]
+WantedBy=multi-user.target
