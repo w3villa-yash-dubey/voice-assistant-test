@@ -10,7 +10,7 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext, JobProc
 from livekit.plugins import openai, silero
 
 from app.config import config
-from app.plugins.goonj_tts import GoonjTTSPlugin, preload_tts
+from app.plugins.goonj_tts import GoonjTTSPlugin
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,16 +29,17 @@ class Assistant(Agent):
         super().__init__(instructions=config.system_prompt)
 
 
-server = AgentServer()
+# Nano-friendly: one idle process, higher load threshold.
+# Do not preload Goonj here — it OOMs/timeouts when many processes load torch.
+server = AgentServer(
+    num_idle_processes=1,
+    load_threshold=0.95,
+)
 
 
 def _prewarm(proc: JobProcess) -> None:
-    """Load Silero VAD + Goonj weights once per worker process."""
+    """Load only Silero VAD; Goonj loads lazily on first TTS call."""
     proc.userdata["vad"] = silero.VAD.load()
-    try:
-        preload_tts()
-    except Exception:
-        logger.exception("Goonj preload failed — first speak may retry load")
 
 
 server.setup_fnc = _prewarm
