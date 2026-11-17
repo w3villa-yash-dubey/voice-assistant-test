@@ -1,1 +1,1 @@
-"""WebRTC voice assistant for Jetson / local testing."""
+"""LiveKit voice agent with local Goonj TTS."""

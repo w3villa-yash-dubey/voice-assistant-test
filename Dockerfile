@@ -12,13 +12,14 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir kokoro misaki --no-deps
 
 COPY app ./app
-COPY static ./static
+COPY agent.py ./agent.py
 COPY scripts ./scripts
+COPY livekit.yaml ./livekit.yaml
 COPY .env.example ./.env.example
 
-ENV HOST=0.0.0.0
-ENV PORT=8080
+ENV LIVEKIT_URL=ws://host.docker.internal:7880
+ENV LIVEKIT_API_KEY=devkey
+ENV LIVEKIT_API_SECRET=secret
 ENV GOONJ_PERSONA=hi_meera
-EXPOSE 8080
 
-CMD ["python", "-m", "app.main"]
+CMD ["python", "agent.py", "start"]

@@ -8,10 +8,11 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv(".env.local")
 
 
 _DEFAULT_SYSTEM_PROMPT = """\
-You are a real-time voice assistant on a low-latency WebRTC call.
+You are a real-time voice assistant on a LiveKit call.
 
 Style:
 - Sound natural, warm, and conversational — like a helpful friend on a phone call.
@@ -33,8 +34,10 @@ Goal: minimal latency feel — short, clear, speakable answers only.
 
 @dataclass(frozen=True)
 class Config:
-    host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", "8080"))
+    # LiveKit (local server or Cloud)
+    livekit_url: str = os.getenv("LIVEKIT_URL", "ws://127.0.0.1:7880")
+    livekit_api_key: str = os.getenv("LIVEKIT_API_KEY", "devkey")
+    livekit_api_secret: str = os.getenv("LIVEKIT_API_SECRET", "secret")
 
     # OpenAI-compatible API (STT + LLM). Works with OpenAI, Groq, local vLLM, etc.
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
@@ -51,14 +54,6 @@ class Config:
     goonj_device: str = os.getenv("GOONJ_DEVICE", "auto")  # auto | cpu | cuda | mps
     goonj_cache_dir: str = os.getenv("GOONJ_CACHE_DIR", "")
     hf_token: str = os.getenv("HF_TOKEN", "")
-
-    # VAD / turn-taking — tuned for snappy barge-in + short end-of-utterance
-    vad_aggressiveness: int = int(os.getenv("VAD_AGGRESSIVENESS", "2"))
-    silence_ms_to_end: int = int(os.getenv("SILENCE_MS_TO_END", "550"))
-    min_speech_ms: int = int(os.getenv("MIN_SPEECH_MS", "220"))
-    barge_in_ms: int = int(os.getenv("BARGE_IN_MS", "160"))
-
-    sample_rate: int = 16000
 
 
 config = Config()
