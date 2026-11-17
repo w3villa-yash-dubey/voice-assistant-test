@@ -1,4 +1,4 @@
-"""One WebRTC peer connection = one voice agent session."""
+"""One WebRTC peer connection = one simple voice agent session."""
 
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ class AgentState(str, Enum):
 
 
 class AgentSession:
+    """Minimal realtime loop: listen → STT → stream LLM → chunked TTS, with barge-in."""
+
     def __init__(
         self,
         stt: SpeechToText,
@@ -90,6 +92,9 @@ class AgentSession:
         assert self.pc.localDescription is not None
         return self.pc.localDescription
 
+    def _busy(self) -> bool:
+        return self.state in (AgentState.THINKING, AgentState.SPEAKING)
+
     async def _consume_inbound(self, track: MediaStreamTrack) -> None:
         try:
             while True:
@@ -98,19 +103,18 @@ class AgentSession:
                 if not pcm16:
                     continue
 
-                speaking = self.state == AgentState.SPEAKING
-                results = self.vad.feed(pcm16, speaking=speaking)
+                busy = self._busy()
+                results = self.vad.feed(pcm16, speaking=busy)
 
-                # Always buffer while we might be in an utterance.
+                # Buffer speech while idle/listening, or while interrupting a reply.
                 if self.state in (AgentState.IDLE, AgentState.LISTENING) or (
-                    self.state == AgentState.SPEAKING
-                    and any(r.is_speech for r in results)
+                    busy and any(r.is_speech for r in results)
                 ):
                     self._utterance.extend(pcm16)
 
                 for result in results:
-                    if result.should_barge_in and self.state == AgentState.SPEAKING:
-                        logger.info("Barge-in detected")
+                    if result.should_barge_in and busy:
+                        logger.info("Barge-in detected (state=%s)", self.state.value)
                         await self._handle_barge_in()
                         break
 
@@ -132,24 +136,35 @@ class AgentSession:
             logger.exception("Inbound audio loop failed")
 
     async def _handle_barge_in(self) -> None:
+        """Stop TTS / in-flight reply immediately; keep mic audio as the new utterance."""
         self._cancel_reply.set()
         self.outbound.clear()
-        if self._reply_task and not self._reply_task.done():
-            self._reply_task.cancel()
+
+        task = self._reply_task
+        self._reply_task = None
+        if task and not task.done():
+            task.cancel()
             try:
-                await self._reply_task
+                await task
             except asyncio.CancelledError:
                 pass
+
         self._cancel_reply.clear()
-        # Keep recent audio as start of the new utterance.
         self.state = AgentState.LISTENING
+        # Keep residual speech in _utterance; only reset VAD counters for a fresh end-point.
         self.vad.reset()
+        # Seed VAD as already in-speech so a short pause can finalize the interrupt.
+        self.vad.mark_in_speech(config.min_speech_ms)
         await self._emit({"type": "state", "state": self.state.value, "barge_in": True})
 
     async def _run_turn(self, pcm_utterance: bytes) -> None:
+        spoken_any = False
+        reply_parts: list[str] = []
         try:
             await self._emit({"type": "status", "message": "transcribing"})
             text = await self.stt.transcribe(pcm_utterance, config.sample_rate)
+            if self._cancel_reply.is_set():
+                return
             if not text:
                 self.state = AgentState.IDLE
                 await self._emit({"type": "state", "state": self.state.value})
@@ -157,39 +172,62 @@ class AgentSession:
 
             await self._emit({"type": "user_transcript", "text": text})
             await self._emit({"type": "status", "message": "thinking"})
-            reply = await self.llm.reply(text)
-            await self._emit({"type": "assistant_text", "text": reply})
 
-            if self._cancel_reply.is_set():
-                return
+            # Stream LLM → synthesize each sentence → enqueue ASAP for low TTFB.
+            async for sentence in self.llm.reply_sentences(text):
+                if self._cancel_reply.is_set():
+                    return
+                reply_parts.append(sentence)
+                await self._emit(
+                    {
+                        "type": "assistant_text",
+                        "text": sentence,
+                        "partial": True,
+                    }
+                )
 
-            await self._emit({"type": "status", "message": "speaking"})
-            self.state = AgentState.SPEAKING
-            await self._emit({"type": "state", "state": self.state.value})
+                pcm = await self.tts.synthesize(sentence, sample_rate=config.sample_rate)
+                if self._cancel_reply.is_set():
+                    return
+                if not pcm:
+                    continue
 
-            pcm = await self.tts.synthesize(reply, sample_rate=config.sample_rate)
-            if self._cancel_reply.is_set():
-                return
-            await self.outbound.enqueue_pcm16(pcm, src_rate=config.sample_rate)
+                if not spoken_any:
+                    spoken_any = True
+                    self.state = AgentState.SPEAKING
+                    await self._emit({"type": "status", "message": "speaking"})
+                    await self._emit({"type": "state", "state": self.state.value})
 
-            # Rough wait for playback to finish unless barge-in cancels.
-            duration = len(pcm) / 2 / config.sample_rate
-            await asyncio.sleep(duration + 0.15)
+                await self.outbound.enqueue_pcm16(pcm, src_rate=config.sample_rate)
+
+            full = " ".join(reply_parts).strip()
+            if full:
+                await self._emit({"type": "assistant_text", "text": full, "partial": False})
+
+            if spoken_any and not self._cancel_reply.is_set():
+                await self.outbound.wait_drained(self._cancel_reply)
 
             if not self._cancel_reply.is_set() and self.state == AgentState.SPEAKING:
                 self.state = AgentState.IDLE
                 self._utterance.clear()
                 self.vad.reset()
                 await self._emit({"type": "state", "state": self.state.value})
+            elif not spoken_any and not self._cancel_reply.is_set():
+                self.state = AgentState.IDLE
+                await self._emit({"type": "state", "state": self.state.value})
         except asyncio.CancelledError:
+            self.outbound.clear()
             raise
         except Exception as exc:
             logger.exception("Turn failed")
+            self.outbound.clear()
             self.state = AgentState.IDLE
             await self._emit({"type": "error", "message": str(exc)})
             await self._emit({"type": "state", "state": self.state.value})
 
     async def close(self) -> None:
+        self._cancel_reply.set()
+        self.outbound.clear()
         if self._recv_task:
             self._recv_task.cancel()
         if self._reply_task:

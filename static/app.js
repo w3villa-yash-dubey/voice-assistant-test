@@ -113,6 +113,8 @@
         addLine("user", msg.text);
         break;
       case "assistant_text":
+        // Show streaming sentence chunks; skip the final combined duplicate.
+        if (msg.partial === false) break;
         addLine("assistant", msg.text);
         break;
       case "error":

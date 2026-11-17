@@ -23,11 +23,13 @@ class OutboundAudioTrack(MediaStreamTrack):
         self._pts = 0
         self._start = time.time()
         self._cancelled = False
+        self._queued_bytes = 0
 
     def clear(self) -> None:
-        """Drop queued TTS audio (barge-in)."""
+        """Drop queued TTS audio immediately (barge-in)."""
         self._cancelled = True
         self._buffer = b""
+        self._queued_bytes = 0
         while not self._queue.empty():
             try:
                 self._queue.get_nowait()
@@ -35,11 +37,29 @@ class OutboundAudioTrack(MediaStreamTrack):
                 break
         self._cancelled = False
 
-    async def enqueue_pcm16(self, pcm16_mono_16k: bytes, src_rate: int = 16000) -> None:
-        if not pcm16_mono_16k:
+    def buffered_seconds(self) -> float:
+        """Approx seconds of audio still waiting / in the playout buffer."""
+        return self._queued_bytes / 2 / self.sample_rate + len(self._buffer) / 2 / self.sample_rate
+
+    async def enqueue_pcm16(self, pcm16_mono: bytes, src_rate: int = 16000) -> None:
+        if not pcm16_mono or self._cancelled:
             return
-        pcm48 = _resample(pcm16_mono_16k, src_rate, self.sample_rate)
+        pcm48 = _resample(pcm16_mono, src_rate, self.sample_rate)
+        if not pcm48:
+            return
+        self._queued_bytes += len(pcm48)
         await self._queue.put(pcm48)
+
+    async def wait_drained(self, cancel: asyncio.Event | None = None) -> None:
+        """Wait until queued TTS has been consumed (or barge-in cancels)."""
+        while self.buffered_seconds() > 0.04:
+            if cancel is not None and cancel.is_set():
+                return
+            await asyncio.sleep(0.02)
+        # Small tail so the last frame actually leaves the peer connection.
+        if cancel is not None and cancel.is_set():
+            return
+        await asyncio.sleep(0.08)
 
     async def recv(self) -> AudioFrame:
         # Produce continuous 20ms frames (silence when idle).
@@ -55,6 +75,7 @@ class OutboundAudioTrack(MediaStreamTrack):
                 break
             if self._cancelled:
                 continue
+            self._queued_bytes = max(0, self._queued_bytes - len(chunk))
             self._buffer += chunk
 
         frame_bytes = self._buffer[:needed]

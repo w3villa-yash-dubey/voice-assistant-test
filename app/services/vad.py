@@ -49,6 +49,12 @@ class VoiceActivityDetector:
         self._in_speech = False
         self._residual = b""
 
+    def mark_in_speech(self, speech_ms: int | None = None) -> None:
+        """After barge-in, treat ongoing speech as already started so end-point is snappy."""
+        self._in_speech = True
+        self._speech_ms = speech_ms if speech_ms is not None else self.min_speech_ms
+        self._silence_ms = 0
+
     def _is_speech_frame(self, frame: bytes) -> bool:
         audio = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
         if audio.size == 0:
