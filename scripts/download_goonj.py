@@ -14,7 +14,8 @@ REPO = "BH-Builds/goonj-1-82M"
 
 
 def main() -> int:
-    persona = os.getenv("GOONJ_PERSONA", "hi_meera")
+    # Hardcoded to match app/services/tts.py (English / en_priya).
+    persona = "en_priya"
     token = os.getenv("HF_TOKEN") or None
     cache = os.getenv("GOONJ_CACHE_DIR") or None
 

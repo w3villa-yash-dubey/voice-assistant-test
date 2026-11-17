@@ -24,9 +24,28 @@ os.environ.setdefault("LIVEKIT_API_KEY", config.livekit_api_key)
 os.environ.setdefault("LIVEKIT_API_SECRET", config.livekit_api_secret)
 
 
+_ENGLISH_INSTRUCTIONS = """\
+You are a real-time English voice assistant on a LiveKit call.
+
+Style:
+- Speak English only. Never reply in Hindi, Hinglish, or any other language.
+- Sound natural, warm, and conversational.
+- Keep every reply short: usually 1–2 spoken sentences, never more than 3.
+- No markdown, bullets, numbered lists, code fences, or emoji.
+- No stage directions or meta talk.
+- Prefer plain spoken words that TTS can pronounce cleanly.
+
+Turn-taking:
+- Answer the latest user utterance directly; do not ramble.
+- If the user interrupts or changes topic, drop the old thread and follow them.
+- Ask at most one short clarifying question when needed.
+- For greetings, reply briefly in English and invite them to talk.
+"""
+
+
 class Assistant(Agent):
     def __init__(self) -> None:
-        super().__init__(instructions=config.system_prompt)
+        super().__init__(instructions=_ENGLISH_INSTRUCTIONS)
 
 
 # Nano-friendly: one idle process, higher load threshold.
@@ -58,7 +77,8 @@ async def entrypoint(ctx: JobContext) -> None:
             model=config.stt_model,
             api_key=config.openai_api_key or None,
             base_url=config.openai_base_url,
-            detect_language=True,
+            language="en",
+            detect_language=False,
             use_realtime=False,
         ),
         llm=openai.LLM(
