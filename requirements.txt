@@ -1,5 +1,6 @@
-# LiveKit voice agent
+# LiveKit voice agent + small UI token server
 livekit-agents[openai,silero]>=1.2.0
+aiohttp>=3.9.0
 python-dotenv>=1.0.0
 numpy>=1.26.0
 

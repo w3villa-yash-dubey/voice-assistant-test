@@ -34,10 +34,16 @@ Goal: minimal latency feel — short, clear, speakable answers only.
 
 @dataclass(frozen=True)
 class Config:
+    # Small web UI (token endpoint + static page)
+    ui_host: str = os.getenv("UI_HOST", "0.0.0.0")
+    ui_port: int = int(os.getenv("UI_PORT", "8080"))
+
     # LiveKit (local server or Cloud)
     livekit_url: str = os.getenv("LIVEKIT_URL", "ws://127.0.0.1:7880")
     livekit_api_key: str = os.getenv("LIVEKIT_API_KEY", "devkey")
     livekit_api_secret: str = os.getenv("LIVEKIT_API_SECRET", "secret")
+    agent_name: str = os.getenv("AGENT_NAME", "goonj-voice-agent")
+
 
     # OpenAI-compatible API (STT + LLM). Works with OpenAI, Groq, local vLLM, etc.
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")

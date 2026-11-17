@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Goonj Voice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/livekit-client@2.15.4/dist/livekit-client.umd.min.js"
+      defer
+    ></script>
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <main class="stage">
+      <p class="brand">Goonj</p>
+      <h1 class="headline">Talk with your voice assistant</h1>
+      <p class="sub" id="status">Ready when you are</p>
+
+      <div class="orb-wrap" aria-hidden="true">
+        <div class="orb" id="orb"></div>
+        <div class="ring ring-a"></div>
+        <div class="ring ring-b"></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="cta" id="talkBtn">Start talking</button>
+        <button type="button" class="ghost" id="endBtn" hidden>End</button>
+      </div>
+    </main>
+  </body>
+</html>

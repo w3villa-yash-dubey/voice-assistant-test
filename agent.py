@@ -45,7 +45,7 @@ def _prewarm(proc: JobProcess) -> None:
 server.setup_fnc = _prewarm
 
 
-@server.rtc_session(agent_name="goonj-voice-agent")
+@server.rtc_session(agent_name=config.agent_name)
 async def entrypoint(ctx: JobContext) -> None:
     if not config.openai_api_key:
         logger.warning("OPENAI_API_KEY is empty — STT/LLM calls will fail until set")
