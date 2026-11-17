@@ -53,13 +53,22 @@ class Config:
 
     system_prompt: str = os.getenv("SYSTEM_PROMPT", _DEFAULT_SYSTEM_PROMPT)
 
-    # Goonj TTS — https://huggingface.co/BH-Builds/goonj-1-82M
+    # Goonj TTS — https://huggingface.co/BH-Builds/goonj-1-82M (optional / legacy)
     goonj_persona: str = os.getenv("GOONJ_PERSONA", "hi_meera")
     goonj_lang: str = os.getenv("GOONJ_LANG", "auto")  # auto | hi | en | hing
     goonj_speed: float = float(os.getenv("GOONJ_SPEED", "1.0"))
     goonj_device: str = os.getenv("GOONJ_DEVICE", "auto")  # auto | cpu | cuda | mps
     goonj_cache_dir: str = os.getenv("GOONJ_CACHE_DIR", "")
     hf_token: str = os.getenv("HF_TOKEN", "")
+
+    # Mithi v2 Flash TTS — https://huggingface.co/Oomni/mithi-v2-flash
+    # Download: python scripts/download_mithi.py
+    mithi_model_dir: str = os.getenv("MITHI_MODEL_DIR", "models/mithi-v2-flash")
+    mithi_lang: str = os.getenv("MITHI_LANG", "en")  # hi en bn gu kn ml mr or pa ta te
+    mithi_voice: str = os.getenv("MITHI_VOICE", "ahana")
+    # auto | cuda | cpu  (auto = cuda if available)
+    mithi_device: str = os.getenv("MITHI_DEVICE", "auto")
+
 
 
 config = Config()

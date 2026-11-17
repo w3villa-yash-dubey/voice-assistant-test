@@ -1,25 +1,41 @@
-# LiveKit Voice Agent (local Goonj TTS)
+# LiveKit Voice Agent (local Mithi v2 Flash TTS)
 
-Browser UI → **LiveKit** → agent (STT → LLM → local **Goonj** TTS).
+Browser UI → **LiveKit** → agent (STT → LLM → local **Mithi** TTS).
 
-## Run on your laptop
+TTS model: [Oomni/mithi-v2-flash](https://huggingface.co/Oomni/mithi-v2-flash)
 
-You need **3 terminals**.
+## Run on your laptop / Jetson
+
+You need **3 terminals** (skip LiveKit if it is already running).
+
+### 0. One-time setup
+
+```bash
+cd voice-assistant-test
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+pip install "misaki[en]>=0.9.4" "espeakng-loader>=0.2.4" "phonemizer-fork>=3.3.2" "spacy>=3.8"
+python -m spacy download en_core_web_sm
+
+cp .env.example .env   # set OPENAI_API_KEY
+python scripts/download_mithi.py
+# ensure .env has: MITHI_MODEL_DIR=models/mithi-v2-flash
+```
 
 ### 1. LiveKit server
 
 ```bash
-cd voice-assistant-test
 docker compose up -d
 ```
+
+Skip if LiveKit is already up on `ws://127.0.0.1:7880`.
 
 ### 2. Voice agent worker
 
 ```bash
 source .venv/bin/activate
-# first time:
-# pip install -r requirements.txt && pip install kokoro misaki --no-deps
-# cp .env.example .env   # set OPENAI_API_KEY
 python agent.py start
 ```
 
@@ -40,19 +56,24 @@ Open **http://127.0.0.1:8080** → **Start talking** → allow mic.
 LIVEKIT_URL=ws://127.0.0.1:7880
 LIVEKIT_API_KEY=devkey
 LIVEKIT_API_SECRET=secret
-AGENT_NAME=goonj-voice-agent
+AGENT_NAME=mithi-voice-agent
 OPENAI_API_KEY=sk-...
 UI_PORT=8080
-GOONJ_PERSONA=hi_meera
+MITHI_MODEL_DIR=models/mithi-v2-flash
+MITHI_LANG=en
+MITHI_VOICE=ahana
+MITHI_DEVICE=auto
 ```
 
 ## Layout
 
 ```
-agent.py                 # LiveKit agent worker
+agent.py                 # LiveKit agent worker (Mithi TTS)
 web_server.py            # UI + /api/token (dispatches agent)
 static/                  # small talk UI
 livekit.yaml             # local LiveKit server
 docker-compose.yml
-app/plugins/goonj_tts.py # local Goonj TTS plugin
+app/plugins/mithi_tts.py # local Mithi TTS plugin
+app/services/mithi_tts.py
+scripts/download_mithi.py
 ```

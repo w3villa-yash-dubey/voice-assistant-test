@@ -1,4 +1,4 @@
-"""Simple LiveKit voice agent with local Goonj TTS."""
+"""Simple LiveKit voice agent with local Mithi v2 Flash TTS."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext, JobProc
 from livekit.plugins import openai, silero
 
 from app.config import config
-from app.plugins.goonj_tts import GoonjTTSPlugin
+from app.plugins.mithi_tts import MithiTTSPlugin
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,7 +49,7 @@ class Assistant(Agent):
 
 
 # Nano-friendly: one idle process, higher load threshold.
-# Do not preload Goonj here — it OOMs/timeouts when many processes load torch.
+# Do not preload Mithi here — it OOMs/timeouts when many processes load torch.
 server = AgentServer(
     num_idle_processes=1,
     load_threshold=0.95,
@@ -57,7 +57,7 @@ server = AgentServer(
 
 
 def _prewarm(proc: JobProcess) -> None:
-    """Load only Silero VAD; Goonj loads lazily on first TTS call."""
+    """Load only Silero VAD; Mithi loads lazily on first TTS call."""
     proc.userdata["vad"] = silero.VAD.load()
 
 
@@ -88,7 +88,7 @@ async def entrypoint(ctx: JobContext) -> None:
             temperature=0.55,
             max_completion_tokens=100,
         ),
-        tts=GoonjTTSPlugin(),
+        tts=MithiTTSPlugin(),
     )
 
     await session.start(agent=Assistant(), room=ctx.room)

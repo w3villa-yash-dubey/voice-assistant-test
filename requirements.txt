@@ -4,15 +4,23 @@ aiohttp>=3.9.0
 python-dotenv>=1.0.0
 numpy>=1.26.0
 
-# Goonj TTS (Kokoro-82M finetune)
-torch>=2.1.0
+# Shared
+torch>=2.4.0
 huggingface_hub>=0.23.0
 soundfile>=0.12.0
-phonemizer>=3.2.0
-loguru>=0.7.0
-transformers>=4.40.0
-scipy>=1.11.0
+safetensors>=0.4.0
+sentencepiece>=0.2.0
 num2words>=0.5.13
+scipy>=1.11.0
+loguru>=0.7.0
 
-# Install these WITHOUT deps (avoids pulling spacy which breaks on some Pythons):
+# Mithi v2 Flash TTS — https://huggingface.co/Oomni/mithi-v2-flash
+# Also needed after pip install -r requirements.txt:
+#   pip install "misaki[en]>=0.9.4" "espeakng-loader>=0.2.4" "phonemizer-fork>=3.3.2" "spacy>=3.8"
+#   python -m spacy download en_core_web_sm
+# Prefer transformers 5.x for Mithi (model card). If that conflicts locally, try >=4.40.
+transformers>=4.40.0
+
+# Legacy Goonj (optional — only if you switch agent back to GoonjTTSPlugin):
 #   pip install kokoro misaki --no-deps
+#   phonemizer>=3.2.0
