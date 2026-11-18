@@ -53,6 +53,7 @@ class Assistant(Agent):
 server = AgentServer(
     num_idle_processes=1,
     load_threshold=0.95,
+    port=8091,  # 8081 is used by the other LiveKit agent on this host
 )
 
 
